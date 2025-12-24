@@ -1,6 +1,4 @@
-# snort3-custom-rules
-Custom Snort 3 rules for lab detection (SQLi, scans, brute-force spikes, flooding)
-md
+
 # Snort 3 Custom Rules (Portfolio / Lab) — Mujahid Ali Khan K
 
 This repository contains a **lab-focused set of 25 custom Snort 3 rules** aligned to SOC Analyst / Detection Engineer use cases. The rules are designed to detect common network and web attack patterns and to demonstrate rule authoring, tuning, and validation in a controlled environment.
