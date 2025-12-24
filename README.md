@@ -6,6 +6,10 @@ This repository contains a **lab-focused set of 25 custom Snort 3 rules** aligne
 ## What’s Included
 All custom rules are in:
 - `rules/local.rules`
+- ## Test Cases
+Lab validation steps are documented in `test-cases/`:
+- `test-cases/scan.md`
+- `test-cases/sqli.md`
 
 Coverage areas:
 - **SQL Injection (SQLi)** indicators in HTTP URI / body (e.g., `UNION SELECT`, `' OR 1=1`, `information_schema`, time-based SQLi)
