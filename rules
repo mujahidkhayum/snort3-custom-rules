@@ -1,5 +1,4 @@
 
-```conf
 # ============================================================
 # local.rules - Custom Snort 3 Rules (Lab / Portfolio)
 # Focus: SQLi, port scans, brute force spikes, TCP/ICMP flooding
@@ -245,4 +244,4 @@ alert http $EXTERNAL_NET any -> $HOME_NET any (
   classtype:web-application-attack;
   sid:1000025; rev:1;
 )
-```
+
