@@ -1,0 +1,248 @@
+
+```conf
+# ============================================================
+# local.rules - Custom Snort 3 Rules (Lab / Portfolio)
+# Focus: SQLi, port scans, brute force spikes, TCP/ICMP flooding
+# Author: Mujahid Ali Khan K (portfolio)
+# NOTE: Use only in a controlled lab environment.
+# ============================================================
+
+# -------------------------
+# SQL Injection (HTTP)
+# -------------------------
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - UNION SELECT in URI";
+  flow:to_server,established;
+  http_uri;
+  content:"union"; nocase;
+  content:"select"; nocase; distance:0; within:60;
+  classtype:web-application-attack;
+  sid:1000001; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - ' OR 1=1 in URI";
+  flow:to_server,established;
+  http_uri;
+  pcre:"/(\%27|')\s*or\s*1\s*=\s*1/i";
+  classtype:web-application-attack;
+  sid:1000002; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - information_schema in URI";
+  flow:to_server,established;
+  http_uri;
+  content:"information_schema"; nocase;
+  classtype:web-application-attack;
+  sid:1000003; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - sleep() time-based attempt in URI";
+  flow:to_server,established;
+  http_uri;
+  pcre:"/sleep\s*\(\s*\d+\s*\)/i";
+  classtype:web-application-attack;
+  sid:1000004; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - benchmark() time-based attempt in URI";
+  flow:to_server,established;
+  http_uri;
+  pcre:"/benchmark\s*\(\s*\d+\s*,/i";
+  classtype:web-application-attack;
+  sid:1000005; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - xp_cmdshell keyword (MSSQL) in URI";
+  flow:to_server,established;
+  http_uri;
+  content:"xp_cmdshell"; nocase;
+  classtype:web-application-attack;
+  sid:1000006; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-ATTACK SQLi - SELECT FROM in HTTP client body";
+  flow:to_server,established;
+  http_client_body;
+  content:"select"; nocase;
+  content:"from"; nocase; distance:0; within:80;
+  classtype:web-application-attack;
+  sid:1000007; rev:1;
+)
+
+# -------------------------
+# Recon / Port scan (threshold-based)
+# -------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"RECON Possible TCP SYN scan (by_src threshold)";
+  flags:S;
+  detection_filter:track by_src, count 25, seconds 5;
+  classtype:attempted-recon;
+  sid:1000008; rev:1;
+)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"RECON Possible UDP scan spike (by_src threshold)";
+  detection_filter:track by_src, count 40, seconds 10;
+  classtype:attempted-recon;
+  sid:1000009; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (
+  msg:"RECON SSH port scan activity (threshold)";
+  flags:S;
+  detection_filter:track by_src, count 10, seconds 10;
+  classtype:attempted-recon;
+  sid:1000010; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 80 (
+  msg:"RECON HTTP port scan activity (threshold)";
+  flags:S;
+  detection_filter:track by_src, count 10, seconds 10;
+  classtype:attempted-recon;
+  sid:1000011; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 443 (
+  msg:"RECON HTTPS port scan activity (threshold)";
+  flags:S;
+  detection_filter:track by_src, count 10, seconds 10;
+  classtype:attempted-recon;
+  sid:1000012; rev:1;
+)
+
+# -------------------------
+# DoS / Flooding (threshold-based)
+# -------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 80 (
+  msg:"DOS Possible TCP SYN flood against HTTP (threshold)";
+  flags:S;
+  detection_filter:track by_src, count 200, seconds 10;
+  classtype:attempted-dos;
+  sid:1000013; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 443 (
+  msg:"DOS Possible TCP SYN flood against HTTPS (threshold)";
+  flags:S;
+  detection_filter:track by_src, count 200, seconds 10;
+  classtype:attempted-dos;
+  sid:1000014; rev:1;
+)
+
+alert icmp $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"DOS ICMP echo request flood (threshold)";
+  itype:8;
+  detection_filter:track by_src, count 150, seconds 10;
+  classtype:attempted-dos;
+  sid:1000015; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"DOS High volume TCP to single destination (by_dst threshold)";
+  detection_filter:track by_dst, count 500, seconds 30;
+  classtype:attempted-dos;
+  sid:1000016; rev:1;
+)
+
+# -------------------------
+# Brute force (heuristic spikes)
+# -------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (
+  msg:"BRUTEFORCE Possible SSH brute force (SYN spike)";
+  flags:S;
+  detection_filter:track by_src, count 15, seconds 60;
+  classtype:attempted-admin;
+  sid:1000017; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 21 (
+  msg:"BRUTEFORCE Possible FTP brute force (SYN spike)";
+  flags:S;
+  detection_filter:track by_src, count 20, seconds 60;
+  classtype:attempted-admin;
+  sid:1000018; rev:1;
+)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3389 (
+  msg:"BRUTEFORCE Possible RDP brute force (SYN spike)";
+  flags:S;
+  detection_filter:track by_src, count 12, seconds 60;
+  classtype:attempted-admin;
+  sid:1000019; rev:1;
+)
+
+# -------------------------
+# Common web probing
+# -------------------------
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-PROBE Attempt to access /admin";
+  flow:to_server,established;
+  http_uri;
+  content:"/admin"; nocase;
+  classtype:web-application-attack;
+  sid:1000020; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-PROBE Attempt to access /.git";
+  flow:to_server,established;
+  http_uri;
+  content:"/.git"; nocase;
+  classtype:web-application-attack;
+  sid:1000021; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-PROBE Attempt to access /phpmyadmin";
+  flow:to_server,established;
+  http_uri;
+  content:"phpmyadmin"; nocase;
+  classtype:web-application-attack;
+  sid:1000022; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"WEB-PROBE Directory traversal pattern ../ in URI";
+  flow:to_server,established;
+  http_uri;
+  content:"../"; nocase;
+  classtype:web-application-attack;
+  sid:1000023; rev:1;
+)
+
+# -------------------------
+# Scanner user-agents (helpful SOC triage indicators)
+# -------------------------
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"SUSPICIOUS User-Agent contains sqlmap";
+  flow:to_server,established;
+  http_header;
+  content:"User-Agent|3a|"; nocase;
+  content:"sqlmap"; nocase; distance:0; within:250;
+  classtype:web-application-attack;
+  sid:1000024; rev:1;
+)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (
+  msg:"SUSPICIOUS User-Agent contains Nikto";
+  flow:to_server,established;
+  http_header;
+  content:"User-Agent|3a|"; nocase;
+  content:"nikto"; nocase; distance:0; within:250;
+  classtype:web-application-attack;
+  sid:1000025; rev:1;
+)
+```
